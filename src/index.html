@@ -1,22 +1,519 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 学号点名系统 ✨</title>
+    <style>
+        /* 全局缩放解决方案（PakePlus专用） */
+        html {
+            zoom: 0.85;             /* 核心缩放系数 */
+            transform-origin: center top;
+            overflow-x: hidden;     /* 防止水平滚动 */
+        }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Microsoft YaHei', '微软雅黑', sans-serif;
+        }
 
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
-        </main>
-    </body>
+        body {
+            background: linear-gradient(135deg, #1a1f3c, #293a7a);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #fff;
+            overflow: hidden;
+            padding: 20px;
+            position: relative;
+            transform: scale(0.95);  /* 二次缩放补偿 */
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 800px;
+            z-index: 10;
+            animation: fadeIn 1s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .title {
+            font-size: 2.4rem;      /* 缩小标题尺寸 */
+            margin-bottom: 1.5rem;
+            text-shadow: 0 0 10px rgba(0, 217, 255, 0.8);
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #ff4d94, #4d79ff, #4df3ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 3s infinite alternate;
+            padding: 0 10px;
+        }
+
+        @keyframes titleGlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .progress-container {
+            height: 6px;
+            background: rgba(78, 111, 189, 0.2);
+            border-radius: 3px;
+            margin: 15px auto;
+            max-width: 400px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, #ff4d94, #4df3ff);
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        .draw-card {
+            background: linear-gradient(45deg, #0d1b39, #1d2f5a);
+            border-radius: 15px;
+            padding: 25px 20px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(78, 111, 189, 0.5);
+        }
+
+        .draw-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff00cc, #00ffcc, #00ccff);
+            z-index: -1;
+            border-radius: 17px;
+            animation: border-animation 4s linear infinite;
+            background-size: 400% 400%;
+            opacity: 0.7;
+        }
+
+        @keyframes border-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .number-display {
+            font-size: 7rem;        /* 缩小数字尺寸 */
+            font-weight: bold;
+            color: #4efff3;
+            text-shadow: 0 0 20px rgba(78, 255, 243, 0.8);
+            height: 150px;          /* 缩小高度 */
+            line-height: 150px;
+            margin: 15px 0;
+            letter-spacing: 3px;
+            transition: all 0.3s ease;
+            display: block;
+            text-align: center;
+            background: rgba(13, 27, 57, 0.25);
+            border-radius: 12px;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            padding: 10px 0;
+            flex-wrap: wrap;
+        }
+
+        .control-btn {
+            background: linear-gradient(to right, #ff4d94, #4d79ff);
+            border: none;
+            color: white;
+            padding: 12px 30px;      /* 缩小按钮尺寸 */
+            font-size: 1.2rem;
+            border-radius: 40px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(78, 0, 225, 0.4);
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+            min-width: 180px;         /* 缩小最小宽度 */
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .control-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 18px rgba(78, 0, 225, 0.6);
+        }
+
+        .result {
+            background: rgba(13, 27, 57, 0.6);
+            border-radius: 12px;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #4e6fbd;
+            font-size: 1.1rem;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.4;
+        }
+
+        .history {
+            background: rgba(13, 27, 57, 0.4);
+            border-radius: 12px;
+            padding: 15px;
+        }
+
+        .history-title {
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            color: #4efff3;
+            text-shadow: 0 0 8px rgba(78, 255, 243, 0.6);
+        }
+
+        .history-items {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .history-item {
+            background: rgba(78, 111, 189, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 1.1rem;
+            min-width: 80px;
+            text-align: center;
+            animation: popIn 0.4s ease-out;
+            border: 1px solid rgba(78, 111, 189, 0.8);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .glowing {
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { 
+                text-shadow: 0 0 20px rgba(78, 255, 243, 0.8);
+                transform: scale(1);
+            }
+            to { 
+                text-shadow: 0 0 40px rgba(78, 255, 243, 1); 
+                transform: scale(1.04);
+            }
+        }
+
+        .pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            animation: confetti-fall 4s linear;
+            z-index: -1;
+        }
+
+        @keyframes confetti-fall {
+            0% { transform: translateY(-100px) rotate(0deg) translateX(0); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(360deg) translateX(100px); opacity: 0; }
+        }
+
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; transform: scale(0.3); }
+            50% { opacity: 1; transform: scale(0.8); }
+        }
+
+        @media (max-width: 600px) {
+            html { zoom: 0.75; }          /* 移动设备加强缩放 */
+            
+            .title { 
+                font-size: 1.8rem; 
+                margin-bottom: 1rem;
+            }
+            
+            .number-display { 
+                font-size: 5.5rem; 
+                height: 120px; 
+                line-height: 120px; 
+            }
+            
+            .control-btn { 
+                padding: 10px 20px; 
+                font-size: 1.1rem; 
+                min-width: 150px;
+            }
+            
+            .controls { 
+                gap: 10px; 
+            }
+            
+            .result { 
+                font-size: 1rem; 
+                padding: 12px; 
+                min-height: 60px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            html { zoom: 0.7; }           /* 低高度设备额外缩放 */
+            .draw-card {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎮 学号点名系统 ✨</h1>
+        
+        <div class="draw-card" id="drawCard">
+            <div class="number-display" id="numberDisplay">?</div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn" id="drawBtn">开始抽选</button>
+                <button class="control-btn" id="resetBtn">重置系统</button>
+            </div>
+            
+            <div class="result" id="result">😊 准备开始抽选学号...</div>
+        </div>
+        
+        <div class="history">
+            <div class="history-title">✨ 已抽中学号历史 ✨</div>
+            <div class="history-items" id="historyItems"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const numberDisplay = document.getElementById('numberDisplay');
+            const drawBtn = document.getElementById('drawBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const resultDiv = document.getElementById('result');
+            const historyItems = document.getElementById('historyItems');
+            const progressBar = document.getElementById('progressBar');
+            
+            // 核心参数配置
+            let isDrawing = false;
+            let drawInterval;
+            let currentNumber = 0;
+            let selectedNumbers = new Set();
+            const totalNumbers = 51;
+            let speedLevel = 0;
+            let autoStopTimeout;
+            let confettiColors = ['#ff4d94', '#4d79ff', '#4df3ff', '#ffcc00', '#00ff99'];
+            
+            // 概率配置（1\~35号:60%，36\~51号:40%）
+            const GROUP1_WEIGHT = 0.6;
+            const GROUP2_WEIGHT = 0.4;
+            
+            // 创建星空背景
+            function createStars() {
+                const container = document.createElement('div');
+                for(let i = 0; i < 60; i++) {
+                    const star = document.createElement('div');
+                    star.classList.add('star');
+                    star.style.left = `${Math.random() * 100}%`;
+                    star.style.top = `${Math.random() * 100}%`;
+                    star.style.width = `${Math.random() * 3 + 1}px`;
+                    star.style.height = star.style.width;
+                    star.style.animationDelay = `${Math.random() * 2}s`;
+                    star.style.opacity = Math.random() * 0.5 + 0.2;
+                    container.appendChild(star);
+                }
+                document.body.appendChild(container);
+            }
+            
+            // 创建庆祝彩带
+            function createConfetti() {
+                for(let i = 0; i < 80; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.classList.add('confetti');
+                    confetti.style.left = `${Math.random() * 100}%`;
+                    confetti.style.backgroundColor = 
+                        confettiColors[Math.floor(Math.random() * confettiColors.length)];
+                    confetti.style.animationDuration = `${Math.random() * 2 + 2}s`;
+                    document.body.appendChild(confetti);
+                    
+                    setTimeout(() => {
+                        if (confetti.parentNode) {
+                            confetti.parentNode.removeChild(confetti);
+                        }
+                    }, 4000);
+                }
+            }
+            
+            // 按权重概率生成随机数
+            function generateWeightedRandom() {
+                return Math.random() < GROUP1_WEIGHT 
+                    ? Math.floor(Math.random() * 35) + 1  // 1\~35
+                    : Math.floor(Math.random() * 16) + 36; // 36\~51
+            }
+            
+            // 添加历史记录
+            function addHistoryItem(number) {
+                const historyItem = document.createElement('div');
+                historyItem.classList.add('history-item');
+                historyItem.textContent = `${number}号`;
+                historyItems.prepend(historyItem);
+                
+                // 限制历史记录数量
+                if (historyItems.children.length > 10) {
+                    historyItems.removeChild(historyItems.lastChild);
+                }
+            }
+            
+            // 自动渐慢功能
+            function startAutoStop() {
+                speedLevel = 0;
+                progressBar.style.width = "0%";
+                
+                let elapsed = 0;
+                const timer = setInterval(() => {
+                    elapsed += 100;
+                    progressBar.style.width = `${(elapsed/3000)*100}%`;
+                    if(elapsed >= 3000) clearInterval(timer);
+                }, 100);
+                
+                // 3秒后开始减速
+                autoStopTimeout = setTimeout(() => {
+                    startSlowingDown();
+                    clearInterval(timer);
+                }, 3000);
+            }
+            
+            function startSlowingDown() {
+                speedLevel++;
+                const speeds = [200, 400, 600, 800]; // 渐慢速度序列
+                
+                if (speedLevel < speeds.length) {
+                    clearInterval(drawInterval);
+                    
+                    // 更新显示速度
+                    drawInterval = setInterval(() => {
+                        currentNumber = generateWeightedRandom();
+                        numberDisplay.textContent = currentNumber;
+                        numberDisplay.classList.add('pulse');
+                        setTimeout(() => numberDisplay.classList.remove('pulse'), 300);
+                    }, speeds[speedLevel]);
+                    
+                    // 递归调用直到最慢速度
+                    setTimeout(startSlowingDown, speeds[speedLevel] * 3);
+                } else {
+                    stopDrawing(); // 最终停止
+                }
+            }
+            
+            // 核心交互控制
+            function startDrawing() {
+                if (selectedNumbers.size >= totalNumbers) {
+                    resultDiv.innerHTML = '🎯 所有学号已抽完！';
+                    return;
+                }
+                
+                isDrawing = true;
+                drawBtn.textContent = "停止抽选";
+                numberDisplay.classList.add('pulse');
+                
+                // 初始快速滚动
+                drawInterval = setInterval(() => {
+                    currentNumber = generateWeightedRandom();
+                    numberDisplay.textContent = currentNumber;
+                }, 100);
+                
+                // 启动自动渐慢流程
+                startAutoStop();
+            }
+            
+            function stopDrawing() {
+                if (!isDrawing) return;
+                
+                clearTimeout(autoStopTimeout);
+                clearInterval(drawInterval);
+                isDrawing = false;
+                drawBtn.textContent = "开始抽选";
+                progressBar.style.width = "0%";
+                numberDisplay.classList.remove('pulse');
+                
+                if (!selectedNumbers.has(currentNumber)) {
+                    selectedNumbers.add(currentNumber);
+                    
+                    // 结果反馈
+ 	    const group = currentNumber <= 35 ? " " : " ";
+                    resultDiv.innerHTML = `🎉 抽中 <span class="highlight">${currentNumber}号</span> ${group}`;
+                    
+                    // 视觉效果
+                    numberDisplay.classList.add('glowing');
+                    createConfetti();
+                    
+                    // 更新历史
+                    addHistoryItem(currentNumber);
+                    
+                    setTimeout(() => numberDisplay.classList.remove('glowing'), 2000);
+                } else {
+                    resultDiv.innerHTML = '🔄 该学号已抽中，重新抽选中...';
+                    setTimeout(startDrawing, 500);
+                }
+            }
+            
+            function resetSystem() {
+                clearInterval(drawInterval);
+                clearTimeout(autoStopTimeout);
+                isDrawing = false;
+                numberDisplay.textContent = "?";
+                drawBtn.textContent = "开始抽选";
+                resultDiv.innerHTML = "🔄 系统已重置，准备抽选中...";
+                progressBar.style.width = "0%";
+                selectedNumbers.clear();
+                historyItems.innerHTML = '';
+            }
+            
+            // 事件监听
+            drawBtn.addEventListener('click', () => {
+                if(isDrawing) stopDrawing();
+                else startDrawing();
+            });
+            resetBtn.addEventListener('click', resetSystem);
+            
+            // 初始化
+            createStars();
+        });
+    </script>
+</body>
 </html>
